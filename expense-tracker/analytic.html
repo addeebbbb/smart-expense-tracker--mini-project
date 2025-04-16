@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Smart Expense Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dark"> <!-- Default to dark theme -->
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar dark">
+            <h2>Smart Expense Tracker</h2>
+            <ul>
+                <li><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="analytic.html" class="active"><i class="fas fa-chart-line"></i> Analytics</a></li>
+                <li><a href="monthly_goals.html"><i class="fas fa-calendar"></i>Monthly Goals</a></li>
+                <li><a href="saving.html"><i class="fas fa-piggy-bank"></i> Savings</a></li>
+                <li><a href="settings.html"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#" id="logoutLink"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content dark">
+            <h1>Analytics</h1>
+
+            <!-- Total Spending -->
+            <div class="analytics-section">
+                <h2>Total Spending</h2>
+                <div class="chart-container">
+                    <canvas id="totalSpendingChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Category-wise Breakdown -->
+            <div class="analytics-section">
+                <h2>Category-wise Breakdown</h2>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Total Expenses -->
+            <div class="analytics-section">
+                <h2>Total Expenses</h2>
+                <div class="chart-container">
+                    <canvas id="totalExpensesChart"></canvas>
+                </div>
+                <p id="total-expenses-amount"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        
+        // Load saved settings from localStorage
+        const savedSettings = JSON.parse(localStorage.getItem('settings')) || { currency: 'Rs.', theme: 'dark' };
+
+        // Apply the saved theme on page load
+        function applyTheme(theme) {
+            document.body.className = theme;
+            document.querySelector('.sidebar').className = `sidebar ${theme}`;
+            document.querySelector('.main-content').className = `main-content ${theme}`;
+        }
+        applyTheme(savedSettings.theme);
+
+        // Load expenses from localStorage
+        const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+
+        // Total Spending Chart
+        const totalSpendingCtx = document.getElementById('totalSpendingChart').getContext('2d');
+        const totalSpendingChart = new Chart(totalSpendingCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Total Spending'],
+                datasets: [{
+                    label: 'Amount',
+                    data: [expenses.reduce((sum, expense) => sum + expense.amount, 0)],
+                    backgroundColor: '#8b5cf6',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+            }
+        });
+
+        // Category-wise Breakdown Chart
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        const categories = ['Food', 'Transport', 'Entertainment', 'Utilities', 'Other'];
+        const categoryData = categories.map(category => {
+            return expenses.reduce((sum, expense) => {
+                return expense.category === category ? sum + expense.amount : sum;
+            }, 0);
+        });
+
+        const categoryChart = new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: categories,
+                datasets: [{
+                    data: categoryData,
+                    backgroundColor: ['#8b5cf6', '#ec4899', '#6366f1', '#10b981', '#f59e0b'],
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+            }
+        });
+
+        // Function to group expenses by month
+        function groupExpensesByMonth(expenses) {
+            const monthlyData = {};
+
+            expenses.forEach(expense => {
+                const date = new Date(expense.date);
+                const month = date.toLocaleString('default', { month: 'long' }); // Get full month name
+
+                if (!monthlyData[month]) {
+                    monthlyData[month] = 0;
+                }
+                monthlyData[month] += expense.amount;
+            });
+
+            return monthlyData;
+        }
+
+        // Get monthly spending data
+        const monthlySpending = groupExpensesByMonth(expenses);
+
+        // Extract labels and data for the chart
+        const months = Object.keys(monthlySpending);
+        const monthlyAmounts = Object.values(monthlySpending);
+
+        // Total Expenses Chart
+        const totalExpensesCtx = document.getElementById('totalExpensesChart').getContext('2d');
+        const totalExpensesChart = new Chart(totalExpensesCtx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Spending',
+                    data: monthlyAmounts,
+                    borderColor: '#8b5cf6',
+                    fill: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                    }
+                }
+            }
+        });
+
+        // Display total expenses amount
+        const totalExpensesAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+        document.getElementById('total-expenses-amount').innerHTML = `Total Expenses: ${savedSettings.currency} ${totalExpensesAmount}`;
+
+          // Logout functionality
+    document.getElementById('logoutLink').addEventListener('click', function(e) {
+      e.preventDefault();
+      localStorage.removeItem('isLoggedIn'); // Clear login state
+      localStorage.removeItem('currentUser'); // Clear current user data
+      window.location.href = 'login.html'; // Redirect to login page
+    });
+    </script>
+</body>
+</html>

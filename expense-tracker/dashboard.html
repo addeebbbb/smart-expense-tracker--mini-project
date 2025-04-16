@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Smart Expense Tracker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Select Options Styling */
+    .dark select {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid #444;
+    }
+
+    .dark select option {
+      background-color: #333;
+      color: #fff;
+    }
+
+    .light select {
+      background-color: #fff;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .light select option {
+      background-color: #fff;
+      color: #333;
+    }
+
+    /* Layout Styles */
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      flex: 0 0 auto;
+      width: 250px;
+      height: 100vh;
+      overflow-y: auto;
+      position: sticky;
+      top: 0;
+    }
+
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    /* Transparent Scrollbar Styles */
+    .main-content::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .main-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .main-content::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+    }
+
+    .main-content::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    /* For Firefox */
+    .main-content {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+    }
+
+    /* Dark theme adjustments */
+    .dark .main-content::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .dark .main-content::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .dark .main-content {
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    /* In-app Notification System */
+    .notification-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      width: 300px;
+    }
+
+    .notification {
+      background-color: #f44336;
+      color: white;
+      padding: 16px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    .notification.success {
+      background-color: #4CAF50;
+    }
+
+    .notification.warning {
+      background-color: #ff9800;
+    }
+
+    .notification.info {
+      background-color: #2196F3;
+    }
+
+    .notification .close-btn {
+      background: transparent;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+
+    .fade-out {
+      animation: fadeOut 0.5s ease-out forwards;
+    }
+
+    /* Budget Progress Bar */
+    .budget-progress {
+      margin-top: 20px;
+      margin-bottom: 40px;
+    }
+
+    .budget-bar {
+      background-color: #e9ecef;
+      border-radius: 5px;
+      height: 20px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .budget-bar-fill {
+      height: 100%;
+      border-radius: 5px;
+      transition: width 0.5s ease;
+    }
+
+    .budget-bar-fill.normal {
+      background-color: #4CAF50;
+    }
+
+    .budget-bar-fill.warning {
+      background-color: #ff9800;
+    }
+
+    .budget-bar-fill.limit {
+      background-color: #2196F3;
+    }
+
+    .budget-bar-fill.danger {
+      background-color: #f44336;
+    }
+
+    .budget-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body class="dark">
+  <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar dark">
+      <h2>Smart Expense Tracker</h2>
+      <ul>
+        <li><a href="dashboard.html" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+        <li><a href="analytic.html"><i class="fas fa-chart-line"></i> Analytics</a></li>
+        <li><a href="monthly_goals.html"><i class="fas fa-calendar"></i> Monthly Goals</a></li>
+        <li><a href="saving.html"><i class="fas fa-piggy-bank"></i> Savings</a></li>
+        <li><a href="settings.html"><i class="fas fa-cog"></i> Settings</a></li>
+        <li><a href="#" id="logoutLink"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+      </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content dark">
+      <h1>Welcome, <span id="username"></span></h1>
+
+      <!-- Notification container -->
+      <div class="notification-container" id="notificationContainer"></div>
+
+      <!-- Add Expense Form -->
+      <div class="add-expense">
+        <h2>Add Expense</h2>
+        <form id="expenseForm">
+          <div class="form-group">
+            <input type="text" id="expenseName" placeholder="Expense Name" required>
+          </div>
+          <div class="form-group">
+            <input type="number" id="expenseAmount" placeholder="Amount" required>
+          </div>
+          <div class="form-group">
+            <select id="expenseCategory" class="dark">
+              <option value="">Select Category</option>
+              <option value="Food">Food</option>
+              <option value="Transport">Transport</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <button type="submit" class="btn">Add Expense</button>
+        </form>
+      </div>
+      
+      <!-- Budget Section -->
+      <div class="budget-section">
+        <h2>Set Monthly Budgets</h2>
+        <form id="budgetForm">
+          <div class="form-group">
+            <label for="budgetCategory">Category</label>
+            <select id="budgetCategory" class="dark">
+              <option value="Food">Food</option>
+              <option value="Transport">Transport</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="budgetAmount">Budget Amount</label>
+            <input type="number" id="budgetAmount" placeholder="Budget Amount" required>
+          </div>
+          <button type="submit" class="btn">Set Budget</button>
+        </form>
+      </div>
+
+      <!-- Budget Overview Section -->
+      <div class="budget-overview">
+        <h2>Budget Overview</h2>
+        <div id="budgetProgressContainer">
+          <!-- Budget progress bars will be added here dynamically -->
+        </div>
+      </div>
+
+      <!-- Expense History -->
+      <div class="expense-history">
+        <h2>Expense History</h2>
+        <table id="expenseTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Name</th>
+              <th>Amount</th>
+              <th>Category</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Rows will be added dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Expense Chart -->
+      <div class="expense-chart">
+        <h2>Expense Overview</h2>
+        <div>
+          <canvas id="expenseChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <script>
+    // Check login status
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Only add demo data if there are no existing expenses
+        if (!localStorage.getItem('expenses') || JSON.parse(localStorage.getItem('expenses')).length === 0) {
+            const demoExpenses = [
+                { date: "9/15/2024", name: "Office Commute", amount: 5000, category: "Transport" },
+                { date: "9/20/2024", name: "Books", amount: 2500, category: "Other" },
+                { date: "10/5/2024", name: "Electricity Bill", amount: 2800, category: "Utilities" },
+                { date: "10/10/2024", name: "Diwali Shopping", amount: 12000, category: "Other" },
+                { date: "11/25/2024", name: "Mobile Recharge", amount: 1000, category: "Utilities" },
+                { date: "11/10/2024", name: "Restaurant", amount: 3500, category: "Food" },
+                { date: "12/5/2024", name: "Christmas Shopping", amount: 8000, category: "Other" },
+                { date: "12/20/2024", name: "Movie Tickets", amount: 1200, category: "Entertainment" },
+                { date: "1/10/2025", name: "Gym Membership", amount: 3000, category: "Other" },
+                { date: "1/15/2025", name: "Petrol", amount: 4200, category: "Transport" },
+                { date: "2/1/2025", name: "Groceries", amount: 7500, category: "Food" },
+                { date: "2/14/2025", name: "Valentine's Dinner", amount: 4500, category: "Food" },
+                { date: "3/5/2025", name: "Netflix", amount: 650, category: "Entertainment" },
+                { date: "3/20/2025", name: "Car Service", amount: 3500, category: "Transport" }
+            ];
+            localStorage.setItem('expenses', JSON.stringify(demoExpenses));
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!localStorage.getItem('isLoggedIn')) {
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        // Load existing data
+        expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        budgets = JSON.parse(localStorage.getItem('budgets')) || {};
+        const incomes = JSON.parse(localStorage.getItem('incomes')) || [];
+        const savingsHistory = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+        
+        // Load saved settings
+        const savedSettings = JSON.parse(localStorage.getItem('settings')) || { currency: 'Rs.', theme: 'dark' };
+        applyTheme(savedSettings.theme);
+        
+        // Initialize UI with saved data
+        updateExpenseTable();
+        updateChart();
+        updateBudgetProgress();
+        checkBudgetStatus();
+    });
+
+    // Check if the user is logged in
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) {
+      window.location.href = 'login.html'; // Redirect to login page if not logged in
+    }
+
+    // Display the username
+    document.getElementById('username').textContent = currentUser.username;
+
+    // Load saved settings from localStorage
+    const savedSettings = JSON.parse(localStorage.getItem('settings')) || { currency: 'Rs.', theme: 'dark' };
+
+    // Apply the saved theme on page load
+    function applyTheme(theme) {
+      document.body.className = theme;
+      document.querySelector('.sidebar').className = `sidebar ${theme}`;
+      document.querySelector('.main-content').className = `main-content ${theme}`;
+      const selects = document.querySelectorAll('select');
+      selects.forEach(select => {
+        select.className = theme;
+      });
+      
+      // Preserve existing data when switching themes
+      const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+      const incomes = JSON.parse(localStorage.getItem('incomes')) || [];
+      const savingsHistory = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+      const budgets = JSON.parse(localStorage.getItem('budgets')) || {};
+      
+      // Update UI with preserved data
+      if (typeof updateDashboard === 'function') {
+        updateDashboard();
+      }
+    }
+    applyTheme(savedSettings.theme);
+
+    // Logout functionality
+    document.getElementById('logoutLink').addEventListener('click', function(e) {
+      e.preventDefault();
+      localStorage.removeItem('isLoggedIn'); // Clear login state
+      localStorage.removeItem('currentUser'); // Clear current user data
+      window.location.href = 'login.html'; // Redirect to login page
+    });
+
+    // In-app notification system
+    function showNotification(message, type = 'warning') {
+      const notificationContainer = document.getElementById('notificationContainer');
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.innerHTML = `
+        <span>${message}</span>
+        <button class="close-btn"><i class="fas fa-times"></i></button>
+      `;
+      
+      notificationContainer.appendChild(notification);
+      
+      // Add event listener to close button
+      notification.querySelector('.close-btn').addEventListener('click', function() {
+        notification.classList.add('fade-out');
+        setTimeout(() => {
+          notificationContainer.removeChild(notification);
+        }, 500);
+      });
+      
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        if (notification.parentNode === notificationContainer) {
+          notification.classList.add('fade-out');
+          setTimeout(() => {
+            if (notification.parentNode === notificationContainer) {
+              notificationContainer.removeChild(notification);
+            }
+          }, 500);
+        }
+      }, 5000);
+    }
+
+    // Load expenses from localStorage
+    let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    
+    // Load budgets from localStorage
+    let budgets = JSON.parse(localStorage.getItem('budgets')) || {};
+
+    // Add Expense
+    document.getElementById('expenseForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('expenseName').value;
+      const amount = parseFloat(document.getElementById('expenseAmount').value);
+      const category = document.getElementById('expenseCategory').value;
+      const date = new Date().toLocaleDateString();
+
+      if (!name || !amount || !category) {
+        showNotification('Please fill all fields', 'warning');
+        return;
+      }
+
+      // Check if adding this expense would exceed the budget
+      const budget = budgets[category] || 0;
+      if (budget > 0) {
+        const currentSpending = getCurrentCategorySpending(category);
+        const newTotal = currentSpending + amount;
+        
+        // Pre-check if this expense will cause budget limits to be reached or exceeded
+        if (newTotal > budget) {
+          showNotification(`Warning: This expense will exceed your ${category} budget!`, 'danger');
+        } else if (newTotal === budget) {
+          showNotification(`Notice: This expense will exactly reach your ${category} budget limit!`, 'info');
+        } else if (newTotal >= budget * 0.9) {
+          showNotification(`Caution: This expense will bring you to ${Math.round((newTotal/budget) * 100)}% of your ${category} budget!`, 'warning');
+        }
+      }
+
+      const expense = { date, name, amount, category };
+      expenses.push(expense);
+      localStorage.setItem('expenses', JSON.stringify(expenses)); // Save to localStorage
+      
+      showNotification(`Expense added: ${savedSettings.currency}${amount.toFixed(2)} for ${name}`, 'success');
+      
+      updateExpenseTable();
+      updateChart();
+      updateBudgetProgress();
+      checkBudgetStatus();
+      
+      e.target.reset();
+    });
+
+    // Get current spending for a category
+    function getCurrentCategorySpending(category) {
+      return expenses.reduce((sum, expense) => {
+        return expense.category === category ? sum + expense.amount : sum;
+      }, 0);
+    }
+
+    // Set Budget
+    document.getElementById('budgetForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const category = document.getElementById('budgetCategory').value;
+      const amount = parseFloat(document.getElementById('budgetAmount').value);
+
+      if (!category || !amount) {
+        showNotification('Please fill all fields', 'warning');
+        return;
+      }
+
+      // Check current spending against new budget
+      const currentSpending = getCurrentCategorySpending(category);
+      if (currentSpending > amount) {
+        showNotification(`Note: Your current ${category} spending of ${savedSettings.currency}${currentSpending.toFixed(2)} already exceeds this budget!`, 'warning');
+      } else if (currentSpending >= amount * 0.9) {
+        showNotification(`Note: Your current ${category} spending is already at ${Math.round((currentSpending/amount) * 100)}% of this budget!`, 'info');
+      }
+
+      budgets[category] = amount;
+      localStorage.setItem('budgets', JSON.stringify(budgets));
+
+      // Reset all notification flags for this category
+      localStorage.removeItem(`${category}BudgetLimitNotificationShown`);
+      localStorage.removeItem(`${category}BudgetWarningShown`);
+      localStorage.removeItem(`${category}BudgetNotificationShown`);
+
+      showNotification(`Budget for ${category} set to ${savedSettings.currency}${amount.toFixed(2)}`, 'success');
+      
+      updateBudgetProgress();
+      checkBudgetStatus();
+      
+      e.target.reset();
+    });
+
+    // Update Expense Table
+    function updateExpenseTable() {
+      const tbody = document.querySelector('#expenseTable tbody');
+      tbody.innerHTML = '';
+      expenses.forEach((expense, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${expense.date}</td>
+          <td>${expense.name}</td>
+          <td>${savedSettings.currency}${expense.amount.toFixed(2)}</td>
+          <td>${expense.category}</td>
+          <td>
+            <button onclick="editExpense(${index})" class="edit-btn"><i class="fas fa-edit"></i></button>
+            <button onclick="deleteExpense(${index})" class="delete-btn"><i class="fas fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Edit Expense
+    function editExpense(index) {
+      const expense = expenses[index];
+      
+      // Populate the form with the expense details
+      document.getElementById('expenseName').value = expense.name;
+      document.getElementById('expenseAmount').value = expense.amount;
+      document.getElementById('expenseCategory').value = expense.category;
+
+      // Remove the expense from the list
+      expenses.splice(index, 1);
+      localStorage.setItem('expenses', JSON.stringify(expenses));
+
+      // Update the table and chart
+      updateExpenseTable();
+      updateChart();
+      updateBudgetProgress();
+      checkBudgetStatus();
+
+      showNotification(`Editing expense: ${expense.name}`, 'info');
+    }
+
+    // Delete Expense
+    function deleteExpense(index) {
+      const expense = expenses[index];
+      expenses.splice(index, 1);
+      localStorage.setItem('expenses', JSON.stringify(expenses)); // Update localStorage
+      
+      showNotification(`Expense deleted: ${savedSettings.currency}${expense.amount.toFixed(2)} for ${expense.name}`, 'success');
+      
+      // Reset notification flags for this category to enable new notifications as budget status changes
+      localStorage.removeItem(`${expense.category}BudgetLimitNotificationShown`);
+      localStorage.removeItem(`${expense.category}BudgetWarningShown`);
+      localStorage.removeItem(`${expense.category}BudgetNotificationShown`);
+      
+      updateExpenseTable();
+      updateChart();
+      updateBudgetProgress();
+      checkBudgetStatus();
+    }
+
+    // Update Budget Progress Bars
+    function updateBudgetProgress() {
+      const budgetProgressContainer = document.getElementById('budgetProgressContainer');
+      budgetProgressContainer.innerHTML = '';
+      
+      const categories = ['Food', 'Transport', 'Entertainment', 'Utilities', 'Other'];
+      
+      // Calculate total spending for each category
+      const categorySpending = {};
+      expenses.forEach(expense => {
+        if (!categorySpending[expense.category]) {
+          categorySpending[expense.category] = 0;
+        }
+        categorySpending[expense.category] += expense.amount;
+      });
+      
+      categories.forEach(category => {
+        const budget = budgets[category] || 0;
+        if (budget > 0) {
+          const spending = categorySpending[category] || 0;
+          const percentage = (spending / budget) * 100;
+          
+          let statusClass = 'normal';
+          if (percentage > 100) {
+            statusClass = 'danger';
+          } else if (percentage === 100) {
+            statusClass = 'limit';
+          } else if (percentage >= 80) {
+            statusClass = 'warning';
+          }
+          
+          const budgetElement = document.createElement('div');
+          budgetElement.className = 'budget-progress';
+          budgetElement.innerHTML = `
+            <div class="budget-info">
+              <h3>${category}</h3>
+              <p>${savedSettings.currency}${spending.toFixed(2)} / ${savedSettings.currency}${budget.toFixed(2)}</p>
+            </div>
+            <div class="budget-bar">
+              <div class="budget-bar-fill ${statusClass}" style="width: ${Math.min(percentage, 100)}%"></div>
+            </div>
+            <p>${percentage.toFixed(1)}% of budget ${percentage > 100 ? '(exceeded)' : percentage === 100 ? '(limit reached)' : percentage >= 80 ? '(approaching limit)' : ''}</p>
+          `;
+          budgetProgressContainer.appendChild(budgetElement);
+        }
+      });
+    }
+
+    // Function to check budget status and show appropriate notifications
+    function checkBudgetStatus() {
+      const categories = ['Food', 'Transport', 'Entertainment', 'Utilities', 'Other'];
+      
+      // Calculate total spending for each category
+      const categorySpending = {};
+      expenses.forEach(expense => {
+        if (!categorySpending[expense.category]) {
+          categorySpending[expense.category] = 0;
+        }
+        categorySpending[expense.category] += expense.amount;
+      });
+      
+      // Check budget status for each category
+      for (const category of categories) {
+        const budget = budgets[category] || 0;
+        if (budget > 0) {
+          const spending = categorySpending[category] || 0;
+          const percentage = (spending / budget) * 100;
+          
+          // Check for different budget thresholds
+          if (percentage > 100) {
+            // Budget exceeded
+            const notificationShown = localStorage.getItem(`${category}BudgetNotificationShown`);
+            if (!notificationShown) {
+              showNotification(`Alert: Your ${category} budget has been exceeded by ${savedSettings.currency}${(spending - budget).toFixed(2)}!`, 'danger');
+              localStorage.setItem(`${category}BudgetNotificationShown`, 'true');
+            }
+          } else if (Math.abs(percentage - 100) < 0.01) {
+            // Budget exactly at limit (allowing for tiny floating point differences)
+            const limitNotificationShown = localStorage.getItem(`${category}BudgetLimitNotificationShown`);
+            if (!limitNotificationShown) {
+              showNotification(`Budget Limit: You have exactly reached your ${category} budget of ${savedSettings.currency}${budget.toFixed(2)}!`, 'info');
+              localStorage.setItem(`${category}BudgetLimitNotificationShown`, 'true');
+            }
+          } else if (percentage >= 80 && percentage < 100) {
+            // Warning at 80%
+            const warningShown = localStorage.getItem(`${category}BudgetWarningShown`);
+            if (!warningShown) {
+              showNotification(`Warning: You've used ${percentage.toFixed(1)}% of your ${category} budget`, 'warning');
+              localStorage.setItem(`${category}BudgetWarningShown`, 'true');
+            }
+          } else {
+            // Reset notification flags if below thresholds
+            localStorage.removeItem(`${category}BudgetLimitNotificationShown`);
+            localStorage.removeItem(`${category}BudgetWarningShown`);
+            localStorage.removeItem(`${category}BudgetNotificationShown`);
+          }
+        }
+      }
+    }
+
+    // Update Chart
+    const ctx = document.getElementById('expenseChart').getContext('2d');
+    let expenseChart;
+
+    function updateChart() {
+      if (expenses.length === 0) {
+        return;
+      }
+
+      const categories = ['Food', 'Transport', 'Entertainment', 'Utilities', 'Other'];
+      const data = categories.map(category => {
+        return expenses.reduce((sum, expense) => {
+          return expense.category === category ? sum + expense.amount : sum;
+        }, 0);
+      });
+
+      if (expenseChart) {
+        expenseChart.destroy();
+      }
+
+      expenseChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: categories,
+          datasets: [{
+            data: data,
+            backgroundColor: ['#8b5cf6', '#ec4899', '#5fa8e3', '#10b981', '#f59e0b'],
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+        }
+      });
+    }
+
+    // Initialize Table, Chart, and Budget Progress
+    updateExpenseTable();
+    updateChart();
+    updateBudgetProgress();
+    checkBudgetStatus();
+
+    // Make deleteExpense and editExpense functions globally available
+    window.deleteExpense = deleteExpense;
+    window.editExpense = editExpense;
+  </script>
+</body>
+</html>

@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Expense Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+</head>
+<style>
+      .delete-btn {
+        background-color: #F44336;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        margin-left: 10px;
+    }
+    .delete-btn:hover {
+        background-color: #D32F2F;
+    }
+    .income-entry {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 5px;
+    }
+    /* Previous styles remain the same */
+    .extra-income {
+        color: #4CAF50;
+        font-style: italic;
+    }
+
+    /* Add these styles */
+    html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden; /* Prevent overall page scroll */
+    }
+
+    .container {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    .sidebar {
+        flex: 0 0 auto;
+        width: 250px;
+        height: 100vh;
+        overflow-y: auto;
+        position: -webkit-sticky;
+        position: sticky;
+        top: 0;
+    }
+
+    .main-content {
+        flex: 1;
+        overflow-y: auto;
+        height: 100vh;
+        padding: 20px;
+    }
+
+    /* Transparent Scrollbar Styles */
+    .main-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .main-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .main-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+    }
+
+    .main-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    /* For Firefox */
+    .main-content {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+    }
+
+    /* Dark theme adjustments */
+    .dark .main-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .dark .main-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    .dark .main-content {
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    /* Monthly breakdown table styles */
+    .expense-table {
+        width: 100%;
+        margin: 20px 0;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+    }
+
+    .expense-table table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    .expense-table th, .expense-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .expense-table th {
+        background-color: rgba(255, 255, 255, 0.1);
+        font-weight: bold;
+    }
+
+    .expense-table tr:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .positive {
+        color: #4CAF50;
+    }
+
+    .negative {
+        color: #F44336;
+    }
+
+    /* Chart styles */
+    .chart-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin: 20px 0;
+    }
+
+    .chart-container {
+        flex: 1;
+        min-width: 300px;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+    }
+
+    /* Income goal and summary section */
+    .goals-section {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .income-goal, .summary {
+        flex: 1;
+        min-width: 300px;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group input {
+        width: 100 px;
+        padding: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+
+    .btn {
+        padding: 10px 15px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .btn:hover {
+        background-color: #45a049;
+    }
+   
+</style>
+<body class="dark">
+    <div class="container">
+        <!-- Sidebar remains the same -->
+        <div class="sidebar dark">
+            <h2>Smart Expense Tracker</h2>
+            <ul>
+                <li><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="analytic.html"><i class="fas fa-chart-line"></i> Analytics</a></li>
+                <li><a href="monthly_goals.html" class="active"><i class="fas fa-calendar"></i> Monthly Goals</a></li>
+                <li><a href="saving.html" ><i class="fas fa-piggy-bank"></i> Savings</a></li>
+                <li><a href="settings.html"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#" id="logoutLink"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </div>
+        <div class="main-content dark">
+            <h1>Monthly Goals & Expenses</h1>
+
+            <!-- Income Section -->
+            <div class="goals-section">
+                <div class="income-goal">
+                    <h2>Set Monthly Income</h2>
+                    <div class="form-group">
+                        <input type="number" id="monthlyIncome" placeholder="Monthly Income" required class="dark">
+                    </div>
+                    <div class="form-group">
+                        <input type="date" id="incomeDate" class="dark">
+                    </div>
+                    
+                    <button id="saveGoals" class="btn">Save Income</button>
+                </div>
+
+                <!-- Income List Section -->
+                <div class="income-list">
+                    <h2>Income Entries</h2>
+                    <div id="incomeEntriesList"></div>
+                </div>
+
+                <!-- Summary Section -->
+                <div class="summary">
+                    <h2>Monthly Summary</h2>
+                    <p>Total Income: <span id="totalIncome">0</span></p>
+                    <p>Total Expenses: <span id="totalExpenses">0</span></p>
+                    <p>Remaining Balance: <span id="remainingBalance">0</span></p>
+                </div>
+            </div>
+
+            <!-- Chart Containers -->
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h2>Monthly Income Overview</h2>
+                    <canvas id="incomeChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h2>Monthly Expenses Overview</h2>
+                    <canvas id="expensesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Expenses Table -->
+            <div class="expense-table">
+                <h2>Monthly Breakdown</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Income Details</th>
+                            <th>Expenses</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthly-expenses-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+   <script>
+    
+document.addEventListener('DOMContentLoaded', function () {
+    // Check if user is logged in
+    if (!localStorage.getItem('isLoggedIn')) {
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // Only add demo data if there are no existing incomes
+    if (!localStorage.getItem('incomes') || JSON.parse(localStorage.getItem('incomes')).length === 0) {
+        const demoIncomes = [
+            { date: "2024-09-01", amount: 60000, type: "Salary" },
+            { date: "2024-10-01", amount: 60000, type: "Salary" },
+            { date: "2024-11-01", amount: 60000, type: "Salary" },
+            { date: "2024-12-01", amount: 60000, type: "Salary" },
+            { date: "2025-01-01", amount: 65000, type: "Salary" },
+            { date: "2025-02-01", amount: 65000, type: "Salary" },
+            { date: "2025-03-01", amount: 65000, type: "Salary" },
+        ];
+
+        localStorage.setItem('incomes', JSON.stringify(demoIncomes));
+    }
+    
+    // Load saved settings
+    const savedSettings = JSON.parse(localStorage.getItem('settings')) || { currency: 'Rs.', theme: 'dark' };
+    
+    // Apply theme
+    applyTheme(savedSettings.theme);
+    
+    // Load data
+    expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    incomes = JSON.parse(localStorage.getItem('incomes')) || [];
+    
+    // Initialize UI
+    updateFinancialSummary();
+    renderIncomeEntriesList();
+});
+
+// Existing settings and theme code
+const savedSettings = JSON.parse(localStorage.getItem('settings')) || { currency: 'Rs.', theme: 'dark' };
+
+function applyTheme(theme) {
+    document.body.className = theme;
+    document.querySelector('.sidebar').className = `sidebar ${theme}`;
+    document.querySelector('.main-content').className = `main-content ${theme}`;
+    
+    // Preserve existing data when switching themes
+    const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    const incomes = JSON.parse(localStorage.getItem('incomes')) || [];
+    const savingsHistory = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+    const budgets = JSON.parse(localStorage.getItem('budgets')) || {};
+    
+    // Save back to localStorage to ensure data structure
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+    localStorage.setItem('incomes', JSON.stringify(incomes));
+    localStorage.setItem('savingsHistory', JSON.stringify(savingsHistory));
+    localStorage.setItem('budgets', JSON.stringify(budgets));
+}
+
+// Load data
+let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+let incomes = JSON.parse(localStorage.getItem('incomes')) || [];
+
+// Function to render income entries list
+function renderIncomeEntriesList() {
+    const incomeEntriesList = document.getElementById('incomeEntriesList');
+    incomeEntriesList.innerHTML = '';
+
+    incomes.forEach((income, index) => {
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'income-entry';
+        
+        const entryDetails = document.createElement('span');
+        entryDetails.textContent = `${income.type || 'Income'}: ${savedSettings.currency} ${income.amount.toFixed(2)} (${new Date(income.date).toLocaleDateString()})`;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.addEventListener('click', () => {
+            // Get current data
+            const currentIncomes = JSON.parse(localStorage.getItem('incomes')) || [];
+            const currentExpenses = JSON.parse(localStorage.getItem('expenses')) || [];
+            const currentSavings = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+            const currentBudgets = JSON.parse(localStorage.getItem('budgets')) || {};
+            
+            // Remove the income entry
+            currentIncomes.splice(index, 1);
+            
+            // Save all data back to localStorage
+            localStorage.setItem('incomes', JSON.stringify(currentIncomes));
+            localStorage.setItem('expenses', JSON.stringify(currentExpenses));
+            localStorage.setItem('savingsHistory', JSON.stringify(currentSavings));
+            localStorage.setItem('budgets', JSON.stringify(currentBudgets));
+            
+            // Update global variable
+            incomes = currentIncomes;
+            
+            // Update visualizations
+            renderIncomeEntriesList();
+            updateFinancialSummary();
+            
+            showNotification('Income entry deleted successfully!', 'success');
+        });
+
+        entryDiv.appendChild(entryDetails);
+        entryDiv.appendChild(deleteBtn);
+        incomeEntriesList.appendChild(entryDiv);
+    });
+}
+
+// Group financials by month
+function groupFinancialsByMonth() {
+    const monthlyData = {};
+    
+    // Process incomes
+    incomes.forEach(income => {
+        const date = new Date(income.date);
+        if (!isNaN(date)) {
+            const monthKey = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+            
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = {
+                    incomeDetails: [],
+                    expenses: 0,
+                    totalIncome: 0,
+                    balance: 0
+                };
+            }
+            
+            monthlyData[monthKey].incomeDetails.push({
+                amount: income.amount,
+                date: date.toLocaleDateString(),
+                type: income.type
+            });
+            monthlyData[monthKey].totalIncome += parseFloat(income.amount);
+        }
+    });
+
+    // Process expenses
+    expenses.forEach(expense => {
+        const date = new Date(expense.date);
+        if (!isNaN(date)) {
+            const monthKey = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+            
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = {
+                    incomeDetails: [],
+                    expenses: 0,
+                    totalIncome: 0,
+                    balance: 0
+                };
+            }
+            
+            monthlyData[monthKey].expenses += parseFloat(expense.amount);
+        }
+    });
+
+    // Calculate balance for each month
+    Object.keys(monthlyData).forEach(monthKey => {
+        monthlyData[monthKey].balance = 
+            monthlyData[monthKey].totalIncome - monthlyData[monthKey].expenses;
+    });
+
+    return monthlyData;
+}
+
+// Update all visualizations
+function updateFinancialSummary() {
+    const monthlyData = groupFinancialsByMonth();
+    const months = Object.keys(monthlyData).sort((a, b) => {
+        const dateA = new Date(a);
+        const dateB = new Date(b);
+        return dateA - dateB;
+    });
+    
+    const incomeData = months.map(m => monthlyData[m].totalIncome);
+    const expensesData = months.map(m => monthlyData[m].expenses);
+    const balanceData = months.map(m => monthlyData[m].balance);
+
+    // Update summary
+    const totalIncome = incomes.reduce((sum, income) => sum + parseFloat(income.amount), 0);
+    const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+    
+    document.getElementById('totalIncome').textContent = `${savedSettings.currency} ${totalIncome.toFixed(2)}`;
+    document.getElementById('totalExpenses').textContent = `${savedSettings.currency} ${totalExpenses.toFixed(2)}`;
+    document.getElementById('remainingBalance').textContent = `${savedSettings.currency} ${(totalIncome - totalExpenses).toFixed(2)}`;
+
+    // Destroy existing charts
+    if (window.incomeChartInstance) window.incomeChartInstance.destroy();
+    if (window.expensesChartInstance) window.expensesChartInstance.destroy();
+
+    // Income Chart (Bar)
+    const incomeCtx = document.getElementById('incomeChart').getContext('2d');
+    window.incomeChartInstance = new Chart(incomeCtx, {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Monthly Income',
+                data: incomeData,
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: chartOptions('Income')
+    });
+
+    // Expenses Chart (Line)
+    const expensesCtx = document.getElementById('expensesChart').getContext('2d');
+    window.expensesChartInstance = new Chart(expensesCtx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Monthly Expenses',
+                data: expensesData,
+                borderColor: 'rgb(131, 61, 200)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: chartOptions('Expenses')
+    });
+
+    // Update monthly breakdown table
+    const tbody = document.getElementById('monthly-expenses-tbody');
+    tbody.innerHTML = '';
+    
+    // Ensure the table has content even if there's no data
+    if (months.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td colspan="4">No data available. Add income and expenses to see breakdown.</td>
+        `;
+        tbody.appendChild(tr);
+    } else {
+        months.forEach(month => {
+            const monthData = monthlyData[month];
+            const tr = document.createElement('tr');
+            
+            // Create income details HTML
+            const incomeDetailsHtml = monthData.incomeDetails.map(income => 
+                `<div>${income.type || 'Income'}: ${savedSettings.currency} ${income.amount.toFixed(2)} (${income.date})`
+            ).join('<br>');
+
+            tr.innerHTML = `
+                <td>${month}</td>
+                <td>${incomeDetailsHtml}</td>
+                <td>${savedSettings.currency} ${monthData.expenses.toFixed(2)}</td>
+                <td class="${monthData.balance >= 0 ? 'positive' : 'negative'}">
+                    ${savedSettings.currency} ${monthData.balance.toFixed(2)}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Render income entries list
+    renderIncomeEntriesList();
+}
+
+// Common chart options
+function chartOptions(title) {
+    return {
+        responsive: true,
+        plugins: {
+            legend: { display: true },
+            title: { display: true, text: `Monthly ${title} Trend` }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    color: savedSettings.theme === 'dark' ? '#fff' : '#000',
+                    callback: function(value) {
+                        return `${savedSettings.currency} ${value}`;
+                    }
+                },
+                grid: { color: savedSettings.theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
+            },
+            x: {
+                ticks: { color: savedSettings.theme === 'dark' ? '#fff' : '#000' },
+                grid: { color: savedSettings.theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
+            }
+        }
+    };
+}
+
+// Save income handler
+document.getElementById('saveGoals').addEventListener('click', () => {
+    const monthlyIncome = parseFloat(document.getElementById('monthlyIncome').value);
+    const incomeDate = document.getElementById('incomeDate').value;
+
+    if (!isNaN(monthlyIncome) && incomeDate) {
+        // Get current data
+        const currentIncomes = JSON.parse(localStorage.getItem('incomes')) || [];
+        const currentExpenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        const currentSavings = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+        const currentBudgets = JSON.parse(localStorage.getItem('budgets')) || {};
+        
+        // Store monthly income
+        const incomeEntry = {
+            amount: monthlyIncome,
+            date: incomeDate,
+            type: 'Monthly Income',
+            id: Date.now() // Add unique identifier
+        };
+        
+        // Merge with existing incomes
+        const updatedIncomes = [...currentIncomes, incomeEntry];
+        
+        // Save all data back to localStorage
+        localStorage.setItem('incomes', JSON.stringify(updatedIncomes));
+        localStorage.setItem('expenses', JSON.stringify(currentExpenses));
+        localStorage.setItem('savingsHistory', JSON.stringify(currentSavings));
+        localStorage.setItem('budgets', JSON.stringify(currentBudgets));
+        
+        // Update global variable
+        incomes = updatedIncomes;
+        
+        showNotification('Monthly income saved successfully!', 'success');
+        updateFinancialSummary();
+        renderIncomeEntriesList();
+
+        // Clear input fields
+        document.getElementById('monthlyIncome').value = '';
+        document.getElementById('incomeDate').value = '';
+    } else {
+        alert('Please enter a valid income amount and date');
+    }
+});
+
+// Initial load and logout
+document.addEventListener('DOMContentLoaded', function() {
+    updateFinancialSummary();
+});
+
+document.getElementById('logoutLink').addEventListener('click', function(e) {
+    e.preventDefault();
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('currentUser');
+    window.location.href = 'login.html';
+});
+
+// Add notification function
+function showNotification(message, type = 'info') {
+    // Create notification container if it doesn't exist
+    let notificationContainer = document.getElementById('notificationContainer');
+    if (!notificationContainer) {
+        notificationContainer = document.createElement('div');
+        notificationContainer.id = 'notificationContainer';
+        notificationContainer.style.position = 'fixed';
+        notificationContainer.style.top = '20px';
+        notificationContainer.style.right = '20px';
+        notificationContainer.style.zIndex = '1000';
+        document.body.appendChild(notificationContainer);
+    }
+
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.style.backgroundColor = type === 'success' ? '#4CAF50' : 
+                                        type === 'warning' ? '#ff9800' : 
+                                        type === 'error' ? '#f44336' : '#2196F3';
+    notification.style.color = 'white';
+    notification.style.padding = '16px';
+    notification.style.marginBottom = '15px';
+    notification.style.borderRadius = '5px';
+    notification.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    notification.style.display = 'flex';
+    notification.style.justifyContent = 'space-between';
+    notification.style.alignItems = 'center';
+    notification.style.animation = 'slideIn 0.5s ease-out';
+    notification.innerHTML = `
+        <span>${message}</span>
+        <button class="close-btn" style="background: transparent; border: none; color: white; cursor: pointer; font-size: 16px;">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    // Add to container
+    notificationContainer.appendChild(notification);
+    
+    // Add event listener to close button
+    notification.querySelector('.close-btn').addEventListener('click', function() {
+        notification.classList.add('fade-out');
+        setTimeout(() => {
+            if (notification.parentNode === notificationContainer) {
+                notificationContainer.removeChild(notification);
+            }
+        }, 500);
+    });
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode === notificationContainer) {
+            notification.classList.add('fade-out');
+            setTimeout(() => {
+                if (notification.parentNode === notificationContainer) {
+                    notificationContainer.removeChild(notification);
+                }
+            }, 500);
+        }
+    }, 5000);
+}
+
+// Add CSS for animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+        to {
+            opacity: 0;
+        }
+    }
+
+    .fade-out {
+        animation: fadeOut 0.5s ease-out forwards;
+    }
+`;
+document.head.appendChild(style);
+   </script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Smart Expense Tracker</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Add this CSS to style the select options */
+    .dark select {
+      background-color:rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid #444;
+    }
+
+    .dark select option {
+      background-color: #333;
+      color: #fff;
+    }
+
+    .light select {
+      background-color: #fff;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .light select option {
+      background-color: #fff;
+      color: #333;
+    }
+  </style>
+</head>
+<body class="dark"> <!-- Default to dark theme -->
+  <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar dark">
+      <h2>Smart Expense Tracker</h2>
+      <ul>
+        <li><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+        <li><a href="analytic.html"><i class="fas fa-chart-line"></i> Analytics</a></li>
+        <li><a href="monthly_goals.html"><i class="fas fa-calendar"></i> Monthly Goals</a></li>
+        <li><a href="saving.html" ><i class="fas fa-piggy-bank"></i> Savings</a></li>
+        <li><a href="settings.html" class="active"><i class="fas fa-cog"></i> Settings</a></li>
+        <li><a href="#" id="logoutLink"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+      </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content dark">
+      <h1>Settings</h1>
+
+      <!-- Currency Settings -->
+      <div class="settings-section">
+        <h2>Currency</h2>
+        <form id="currencyForm">
+          <div class="form-group">
+            <label for="currency">Select Currency</label>
+            <select id="currency" class="dark">
+              <option value="Rs.">Rupee (Rs.)</option>
+              <option value="$">Dollar ($)</option>
+              <option value="€">Euro (€)</option>
+              <option value="£">Pound (£)</option>
+            </select>
+          </div>
+          <button type="submit" class="btn">Save</button>
+        </form>
+      </div>
+
+      <!-- Theme Settings -->
+      <div class="settings-section">
+        <h2>Theme</h2>
+        <form id="themeForm">
+          <div class="form-group">
+            <label for="theme">Select Theme</label>
+            <select id="theme" class="dark">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+          <button type="submit" class="btn">Save</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check login status
+        if (!localStorage.getItem('isLoggedIn')) {
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        const savedSettings = JSON.parse(localStorage.getItem('settings')) || { currency: 'Rs.', theme: 'dark' };
+        
+        // Set initial values
+        document.getElementById('currency').value = savedSettings.currency;
+        document.getElementById('theme').value = savedSettings.theme;
+        
+        // Apply current theme
+        applyTheme(savedSettings.theme);
+        
+        // Save settings
+        document.getElementById('settingsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newSettings = {
+                currency: document.getElementById('currency').value,
+                theme: document.getElementById('theme').value
+            };
+            localStorage.setItem('settings', JSON.stringify(newSettings));
+            applyTheme(newSettings.theme);
+            showNotification('success', 'Settings saved successfully');
+        });
+    });
+
+    // Load saved settings from localStorage
+    const savedSettings = JSON.parse(localStorage.getItem('settings')) || { currency: 'Rs.', theme: 'dark' };
+
+    // Set initial values in the form
+    document.getElementById('currency').value = savedSettings.currency;
+    document.getElementById('theme').value = savedSettings.theme;
+
+    // Apply the saved theme on page load
+    function applyTheme(theme) {
+      document.body.className = theme;
+      document.querySelector('.sidebar').className = `sidebar ${theme}`;
+      document.querySelector('.main-content').className = `main-content ${theme}`;
+      const selects = document.querySelectorAll('select');
+      selects.forEach(select => {
+        select.className = theme;
+      });
+    }
+    applyTheme(savedSettings.theme);
+
+    // Save Currency Settings
+    document.getElementById('currencyForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const currency = document.getElementById('currency').value;
+      savedSettings.currency = currency;
+      localStorage.setItem('settings', JSON.stringify(savedSettings));
+      alert('Currency saved successfully!');
+    });
+
+    // Save Theme Settings
+    document.getElementById('themeForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const theme = document.getElementById('theme').value;
+      
+      // Get current settings and data
+      const currentSettings = JSON.parse(localStorage.getItem('settings')) || { currency: 'Rs.', theme: 'dark' };
+      const currentExpenses = JSON.parse(localStorage.getItem('expenses')) || [];
+      const currentIncomes = JSON.parse(localStorage.getItem('incomes')) || [];
+      const currentSavings = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+      const currentBudgets = JSON.parse(localStorage.getItem('budgets')) || {};
+      
+      // Update theme in settings
+      currentSettings.theme = theme;
+      
+      // Save all data back to localStorage
+      localStorage.setItem('settings', JSON.stringify(currentSettings));
+      localStorage.setItem('expenses', JSON.stringify(currentExpenses));
+      localStorage.setItem('incomes', JSON.stringify(currentIncomes));
+      localStorage.setItem('savingsHistory', JSON.stringify(currentSavings));
+      localStorage.setItem('budgets', JSON.stringify(currentBudgets));
+      
+      showNotification('success', 'Theme saved successfully!');
+      applyTheme(theme); // Apply the selected theme
+      
+      // Reload the page to ensure all components are properly updated
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    });
+
+    // Logout functionality
+    document.getElementById('logoutLink').addEventListener('click', function(e) {
+      e.preventDefault();
+      localStorage.removeItem('isLoggedIn'); // Clear login state
+      localStorage.removeItem('currentUser'); // Clear current user data
+      window.location.href = 'login.html'; // Redirect to login page
+    });
+  </script>
+</body>
+</html>

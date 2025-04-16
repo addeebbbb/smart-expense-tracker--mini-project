@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savings - Smart Expense Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Chart.js with fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <script>
+        // Fallback for Chart.js
+        window.Chart = window.Chart || {};
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<style>
+ 
+ .savings-goal-form {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+    .dark {
+        background-color: #1e1e2e;
+        color: #ffffff;
+    }
+
+    .light {
+        background-color: #f5f5f5;
+        color: #333333;
+    }
+
+    /* Notification styles */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px;
+        border-radius: 5px;
+        color: #fff;
+        font-size: 14px;
+        z-index: 1000;
+        display: none;
+    }
+
+    .notification.success {
+        background-color: #28a745;
+    }
+
+    .notification.error {
+        background-color: #dc3545;
+    }
+    #notificationContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            max-width: 300px;
+        }
+
+        .notification {
+            padding: 15px;
+            border-radius: 5px;
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 10px;
+            opacity: 1;
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            max-width: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .notification.success {
+            background-color: #28a745;
+        }
+
+        .notification.error {
+            background-color: #dc3545;
+        }
+
+        .notification.fade-out {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+    /* Form elements */
+    .dark select {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border: 1px solid #444;
+    }
+
+    .dark select option {
+        background-color: #333;
+        color: #fff;
+    }
+
+    .light select {
+        background-color: #ffffff;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+    .light select option {
+        background-color: #fff;
+        color: #333;
+    }
+
+    /* Layout */
+    body {
+      display: flex;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      display: flex;
+      width: 100%;
+    }
+    .sidebar {
+      width: 250px;
+      background-color: #2c3e50;
+      color: white;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .sidebar h2 {
+      margin-bottom: 20px;
+    }
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+    .sidebar li {
+      margin-bottom: 15px;
+    }
+    .sidebar a {
+      color: white;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+    }
+    .sidebar a i {
+      margin-right: 10px;
+    }
+    .sidebar .active {
+      font-weight: none;
+    }
+    .main-content {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    canvas {
+      max-height: 400px;
+    }
+    .dark .sidebar ul li a:hover, .dark .sidebar ul li a.active {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .light .sidebar ul li a:hover, .light .sidebar ul li a.active {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .main-content {
+        flex: 1;
+        overflow-y: auto;
+        height: 100vh;
+        padding: 20px;
+    }
+
+    /* Scrollbar styles */
+    .main-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .main-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .main-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+    }
+
+    .main-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .main-content {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+    }
+
+    .dark .main-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .dark .main-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    .dark .main-content {
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    /* Content elements */
+    .summary-box {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .summary-item {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+    }
+
+    .summary-value {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 10px 0;
+        color: #159c5f;
+    }
+
+    .summary-label {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .light .summary-box {
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    .light .summary-item {
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    .light .summary-value {
+        color: #0622b0;
+    }
+
+    .light .summary-label {
+        color: rgba(0, 0, 0, 0.7);
+    }
+
+    .chart-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .chart-container {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+    /* Form styling */
+    .income-form {
+        margin-bottom: 20px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .form-group input {
+        width: 200 px;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+    }
+
+    .dark .form-group input {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border: 1px solid #444;
+    }
+
+    .light .form-group input {
+        background-color: #fff;
+        color: #333;
+    }
+
+    button {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .dark button {
+        background-color: #8b5cf6;
+        color: #fff;
+    }
+
+    .dark button:hover {
+        background-color: #7c3aed;
+    }
+
+    .light button {
+        background-color: #0622b0;
+        color: #fff;
+    }
+
+    .light button:hover {
+        background-color: #051d8f;
+    }
+    
+    
+</style>
+<body class="dark">
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar dark">
+            <h2>Smart Expense Tracker</h2>
+            <ul>
+                <li><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="analytic.html"><i class="fas fa-chart-line"></i> Analytics</a></li>
+                <li><a href="monthly_goals.html"><i class="fas fa-calendar"></i> Monthly Goals</a></li>
+                <li><a href="saving.html" class="active"><i class="fas fa-piggy-bank"></i> Savings</a></li>
+                <li><a href="settings.html"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#" id="logoutLink"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content dark">
+            <h1>Savings Dashboard</h1>
+            
+            <!-- Monthly Income Form -->
+            <div class="income-form">
+                <h2>Set Monthly Income</h2>
+                <div class="form-group">
+                    <label for="incomeInput">Monthly Income</label>
+                    <input type="number" id="incomeInput" placeholder="Enter your monthly income">
+                </div>
+                <button id="saveIncomeBtn">Save Income</button>
+            </div>
+            
+            <div class="savings-goal-form">
+                <h2>Set Savings Goal</h2>
+                <div class="form-group">
+                    <label for="savingsGoalInput">Monthly Savings Goal</label>
+                    <input type="number" id="savingsGoalInput" placeholder="Enter your monthly savings goal">
+                </div>
+                <button id="saveSavingsGoalBtn">Save Goal</button>
+            </div>
+
+            <!-- Savings Summary -->
+            <div class="summary-box">
+                <h2>Savings Summary</h2>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <div class="summary-value" id="monthlyIncome">0</div>
+                        <div class="summary-label">Monthly Income</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" id="totalExpenses">0</div>
+                        <div class="summary-label">Total Expenses</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" id="currentSavings">0</div>
+                        <div class="summary-label">Remaining Balance</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value" id="savingsRate">0%</div>
+                        <div class="summary-label">Savings Rate</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Savings Progress Chart -->
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h2>Savings Progress</h2>
+                    <canvas id="savingsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Category Expenses Charts -->
+            <h2>Category Wise Expenses</h2>
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Food Expenses</h3>
+                    <canvas id="foodChart"></canvas>
+                    <div id="foodChartFallback" style="display: none; text-align: center; padding: 20px;">
+                        <p>Chart could not be loaded. Please check your internet connection and try again.</p>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Transport Expenses</h3>
+                    <canvas id="transportChart"></canvas>
+                    <div id="transportChartFallback" style="display: none; text-align: center; padding: 20px;">
+                        <p>Chart could not be loaded. Please check your internet connection and try again.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Entertainment Expenses</h3>
+                    <canvas id="entertainmentChart"></canvas>
+                    <div id="entertainmentChartFallback" style="display: none; text-align: center; padding: 20px;">
+                        <p>Chart could not be loaded. Please check your internet connection and try again.</p>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Utilities Expenses</h3>
+                    <canvas id="utilitiesChart"></canvas>
+                    <div id="utilitiesChartFallback" style="display: none; text-align: center; padding: 20px;">
+                        <p>Chart could not be loaded. Please check your internet connection and try again.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-row">
+                <div class="chart-container">
+                    <h3>Other Expenses</h3>
+                    <canvas id="OtherChart"></canvas>
+                    <div id="otherChartFallback" style="display: none; text-align: center; padding: 20px;">
+                        <p>Chart could not be loaded. Please check your internet connection and try again.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Divs -->
+    <div id="notificationContainer">
+        <div id="successNotification" class="notification success">Operation successful!</div>
+        <div id="errorNotification" class="notification error">Error occurred!</div>
+   </div>
+ <script>
+    // Global Variables
+  
+document.addEventListener('DOMContentLoaded', function () {
+    console.log("DOMContentLoaded event fired");
+    // Check if user is logged in
+    if (!localStorage.getItem('isLoggedIn')) {
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // Only add demo data if there are no existing savings
+    if (!localStorage.getItem('savingsHistory') || JSON.parse(localStorage.getItem('savingsHistory')).length === 0) {
+        console.log("No savings history found, adding demo data");
+        const demoSavings = [
+            { date: "2024-09-01", amount: 9000, target: 10000 },
+            { date: "2024-10-01", amount: 12000, target: 10000 },
+            { date: "2024-11-01", amount: 8000, target: 10000 },
+            { date: "2024-12-01", amount: 10000, target: 10000 },
+            { date: "2025-01-01", amount: 6000, target: 10000 },
+            { date: "2025-02-01", amount: 13000, target: 10000 },
+            { date: "2025-03-01", amount: 16000, target: 10000 }
+            
+        ];
+
+        localStorage.setItem('savingsHistory', JSON.stringify(demoSavings));
+    }
+    
+    // Load saved settings
+    const savedSettings = JSON.parse(localStorage.getItem('settings')) || { currency: 'Rs.', theme: 'dark' };
+    
+    // Apply theme
+    applyTheme(savedSettings.theme);
+    
+    // Load data
+    savingsHistory = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+    
+    // Initialize UI
+    console.log("Calling updateSavingsProgress");
+    updateSavingsProgress();
+    
+    // Also update other charts and data
+    loadSavingsSummary();
+    updateAllCharts();
+});
+
+
+const categories = ['food', 'transport', 'entertainment', 'utilities', 'Other'];
+const charts = {};
+const savedSettings = JSON.parse(localStorage.getItem('settings')) || { 
+    currency: 'Rs.', 
+    theme: 'dark' 
+};
+
+// Initialization Functions
+function initializeDataStructures() {
+    const dataStructures = {
+        'expenses': [],
+        'savingsHistory': [],
+        'budgets': {},
+        'monthlyIncome': 0,
+        'savingsGoal': 0
+    };
+
+    Object.entries(dataStructures).forEach(([key, defaultValue]) => {
+        if (!localStorage.getItem(key)) {
+            localStorage.setItem(key, JSON.stringify(defaultValue));
+        }
+    });
+}
+
+function initApp() {
+    // Initialize data structures
+    initializeDataStructures();
+    
+    // Apply theme
+    applyTheme(savedSettings.theme);
+    
+    // Initialize charts
+    try {
+        if (typeof Chart === 'undefined' || !Chart) {
+            showChartFallbacks();
+            showNotification('error', 'Chart.js failed to load. Please refresh the page or check your internet connection.');
+            return;
+        }
+        initializeCharts();
+    } catch (error) {
+        console.error('Error initializing charts:', error);
+        showChartFallbacks();
+        showNotification('error', 'Error initializing charts');
+    }
+    
+    // Set up event listeners
+    setupEventListeners();
+    
+    // Load initial data
+    try {
+        loadSavingsSummary();
+        updateAllCharts();
+        loadSavingsGoal();
+    } catch (error) {
+        console.error('Error loading initial data:', error);
+        showNotification('error', 'Error loading data');
+    }
+    
+    // Load saved income
+    const savedIncome = localStorage.getItem('monthlyIncome');
+    if (savedIncome) {
+        document.getElementById('incomeInput').value = savedIncome;
+    }
+    
+    // Set up periodic updates
+    setInterval(() => {
+        try {
+            updateAllCharts();
+        } catch (error) {
+            console.error('Error in periodic update:', error);
+        }
+    }, 1000 * 60 * 5);
+}
+
+// Event Listeners Setup
+function setupEventListeners() {
+    document.getElementById('saveIncomeBtn').addEventListener('click', saveMonthlyIncome);
+    document.getElementById('logoutLink').addEventListener('click', handleLogout);
+    
+    const saveSavingsGoalBtn = document.getElementById('saveSavingsGoalBtn');
+    if (saveSavingsGoalBtn) {
+        saveSavingsGoalBtn.addEventListener('click', saveSavingsGoal);
+    }
+}
+
+// Income and Savings Goal Functions
+function saveMonthlyIncome() {
+    const incomeInput = document.getElementById('incomeInput');
+    const income = parseFloat(incomeInput.value);
+    
+    if (isNaN(income) || income < 0) {
+        showNotification('error', 'Please enter a valid income amount');
+        return;
+    }
+    
+    localStorage.setItem('monthlyIncome', income);
+    updateSavingsHistory(income);
+    loadSavingsSummary();
+    updateAllCharts();
+    showNotification('success', 'Monthly income updated successfully');
+}
+
+function saveSavingsGoal() {
+    const goalInput = document.getElementById('savingsGoalInput');
+    const goal = parseFloat(goalInput.value);
+    
+    if (isNaN(goal) || goal < 0) {
+        showNotification('error', 'Please enter a valid savings goal');
+        return;
+    }
+    
+    // Save the goal to localStorage
+    localStorage.setItem('savingsGoal', goal);
+    
+    // Update the savings history with the new target
+    const savingsHistory = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+    
+    // If there's no savings history, create some demo data
+    if (savingsHistory.length === 0) {
+        const demoSavings = [
+            { date: "2024-09-01", amount: 9000, target: goal },
+            { date: "2024-10-01", amount: 12000, target: goal },
+            { date: "2024-11-01", amount: 8000, target: goal },
+            { date: "2024-12-01", amount: 10000, target: goal },
+            { date: "2025-01-01", amount: 6000, target: goal },
+            { date: "2025-02-01", amount: 13000, target: goal },
+            { date: "2025-03-01", amount: 16000, target: goal },
+            
+        ];
+        localStorage.setItem('savingsHistory', JSON.stringify(demoSavings));
+    } else {
+        // Update the target for all existing entries
+        const updatedSavingsHistory = savingsHistory.map(entry => ({
+            ...entry,
+            target: goal
+        }));
+        localStorage.setItem('savingsHistory', JSON.stringify(updatedSavingsHistory));
+    }
+    
+    // Update the UI
+    updateSavingsProgress();
+    
+    showNotification('success', `Savings goal updated to ${savedSettings.currency}${goal.toFixed(2)}`);
+}
+
+function loadSavingsGoal() {
+    const savingsGoalInput = document.getElementById('savingsGoalInput');
+    if (savingsGoalInput) {
+        const goal = parseFloat(localStorage.getItem('savingsGoal')) || 0;
+        savingsGoalInput.value = goal > 0 ? goal : '';
+    }
+}
+
+// Savings History and Summary
+function updateSavingsHistory(monthlyIncome) {
+    const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+    const currentSavings = Math.max(0, monthlyIncome - totalExpenses);
+    
+    const savingsHistory = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+    const today = new Date();
+    const dateString = today.toISOString().split('T')[0];
+    
+    const existingIndex = savingsHistory.findIndex(entry => entry.date === dateString);
+    
+    if (existingIndex >= 0) {
+        savingsHistory[existingIndex].amount = currentSavings;
+    } else {
+        savingsHistory.push({
+            date: dateString,
+            amount: currentSavings
+        });
+    }
+    
+    while (savingsHistory.length > 30) {
+        savingsHistory.shift();
+    }
+    
+    localStorage.setItem('savingsHistory', JSON.stringify(savingsHistory));
+}
+
+function loadSavingsSummary() {
+    try {
+        const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        
+        const currentMonth = new Date().getMonth();
+        const currentMonthExpenses = expenses.filter(expense => {
+            if (!expense.date) return false;
+            const expenseDate = new Date(expense.date);
+            return !isNaN(expenseDate.getTime()) && expenseDate.getMonth() === currentMonth;
+        });
+        
+        const totalExpenses = currentMonthExpenses.reduce((sum, expense) => {
+            return sum + (parseFloat(expense.amount) || 0);
+        }, 0);
+        
+        const monthlyIncome = parseFloat(localStorage.getItem('monthlyIncome')) || 0;
+        const currentSavings = Math.max(0, monthlyIncome - totalExpenses);
+        const savingsRate = monthlyIncome > 0 ? (currentSavings / monthlyIncome) * 100 : 0;
+        
+        const monthlyIncomeEl = document.getElementById('monthlyIncome');
+        const totalExpensesEl = document.getElementById('totalExpenses');
+        const currentSavingsEl = document.getElementById('currentSavings');
+        const savingsRateEl = document.getElementById('savingsRate');
+        
+        if (monthlyIncomeEl) monthlyIncomeEl.textContent = `${savedSettings.currency}${monthlyIncome.toFixed(2)}`;
+        if (totalExpensesEl) totalExpensesEl.textContent = `${savedSettings.currency}${totalExpenses.toFixed(2)}`;
+        if (currentSavingsEl) currentSavingsEl.textContent = `${savedSettings.currency}${currentSavings.toFixed(2)}`;
+        if (savingsRateEl) savingsRateEl.textContent = `${savingsRate.toFixed(1)}%`;
+        
+        return { monthlyIncome, totalExpenses, currentSavings, savingsRate };
+    } catch (error) {
+        console.error('Error loading savings summary:', error);
+        showNotification('error', 'Error loading savings data');
+        return { monthlyIncome: 0, totalExpenses: 0, currentSavings: 0, savingsRate: 0 };
+    }
+}
+
+// Chart and Visualization Functions
+function initializeCharts() {
+    if (typeof Chart === 'undefined' || !Chart) {
+        showChartFallbacks();
+        return;
+    }
+
+    console.log("Initializing charts...");
+
+    // Initialize category charts
+    categories.forEach(category => {
+        const canvas = document.getElementById(`${category}Chart`);
+        if (!canvas) {
+            console.error(`Canvas not found for category: ${category}`);
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error(`Could not get context for ${category} chart`);
+            return;
+        }
+
+        if (charts[category]) {
+            charts[category].destroy();
+        }
+        
+        charts[category] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: getDailyLabels(),
+                datasets: [{
+                    label: `${category.charAt(0).toUpperCase() + category.slice(1)} Expenses`,
+                    data: [],
+                    borderColor: getChartColor(category),
+                    backgroundColor: getChartBackgroundColor(category),
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: `Amount (${savedSettings.currency})`
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    });
+
+    // Initialize savings chart
+    const dailyCanvas = document.getElementById('savingsProgressChart');
+    if (dailyCanvas) {
+        const dailyCtx = dailyCanvas.getContext('2d');
+        if (!dailyCtx) {
+            console.error('Could not get context for savings chart');
+            return;
+        }
+
+        if (charts['savings']) {
+            charts['savings'].destroy();
+        }
+
+        // Get initial savings data
+        const savingsHistory = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+        console.log(`Initializing savings chart with ${savingsHistory.length} entries`);
+        
+        const savingsData = Array(30).fill(0);
+        savingsHistory.forEach(entry => {
+            const entryDate = new Date(entry.date);
+            if (!isNaN(entryDate.getTime())) {
+                const today = new Date();
+                const diffDays = Math.floor((today - entryDate) / (1000 * 60 * 60 * 24));
+                
+                if (diffDays >= 0 && diffDays < 30) {
+                    const index = 29 - diffDays;
+                    savingsData[index] = parseFloat(entry.amount) || 0;
+                }
+            }
+        });
+
+        charts['savings'] = new Chart(dailyCtx, {
+            type: 'line',
+            data: {
+                labels: getLastThirtyDays(),
+                datasets: [{
+                    label: 'Savings Amount',
+                    data: savingsData,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: `Amount (${savedSettings.currency})`
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+        
+        console.log("Savings chart initialized with data:", savingsData);
+    } else {
+        console.error("Savings chart canvas not found");
+    }
+}
+
+function updateAllCharts() {
+    try {
+        console.log("Updating all charts...");
+        
+        // Update category charts
+        categories.forEach(category => {
+            if (!charts[category]) {
+                console.error(`Chart not initialized for category: ${category}`);
+                return;
+            }
+            
+            const transactions = JSON.parse(localStorage.getItem('expenses')) || [];
+            console.log(`Found ${transactions.length} expenses for ${category}`);
+            
+            const dailyData = Array(getDailyLabels().length).fill(0);
+
+            const categoryTransactions = transactions.filter(t => 
+                t.category && 
+                t.category.toLowerCase() === category.toLowerCase()
+            );
+            
+            console.log(`Filtered ${categoryTransactions.length} transactions for ${category}`);
+
+            categoryTransactions.forEach(t => {
+                if (!t.date) return;
+                
+                const date = new Date(t.date);
+                if (isNaN(date.getTime())) return;
+                
+                const currentMonth = new Date().getMonth();
+                if (date.getMonth() === currentMonth) {
+                    const day = date.getDate();
+                    if (day >= 1 && day <= dailyData.length) {
+                        dailyData[day - 1] += parseFloat(t.amount) || 0;
+                    }
+                }
+            });
+
+            charts[category].data.datasets[0].data = dailyData;
+            charts[category].update();
+        });
+        
+        // Update savings chart
+        if (charts['savings']) {
+            const savingsHistory = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+            console.log(`Found ${savingsHistory.length} savings history entries`);
+            
+            // If no savings history, create some demo data
+            if (savingsHistory.length === 0) {
+                console.log("No savings history found, creating demo data");
+                const today = new Date();
+                const demoData = [];
+                
+                for (let i = 0; i < 30; i++) {
+                    const date = new Date();
+                    date.setDate(today.getDate() - i);
+                    const dateString = date.toISOString().split('T')[0];
+                    const amount = Math.floor(Math.random() * 10000) + 5000;
+                    demoData.push({ date: dateString, amount: amount });
+                }
+                
+                localStorage.setItem('savingsHistory', JSON.stringify(demoData));
+                console.log("Demo savings data created");
+            }
+            
+            // Get the updated savings history (in case we just created demo data)
+            const updatedSavingsHistory = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+            const savingsData = Array(30).fill(0);
+            
+            updatedSavingsHistory.forEach(entry => {
+                const entryDate = new Date(entry.date);
+                if (!isNaN(entryDate.getTime())) {
+                    const today = new Date();
+                    const diffDays = Math.floor((today - entryDate) / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays >= 0 && diffDays < 30) {
+                        const index = 29 - diffDays;
+                        savingsData[index] = parseFloat(entry.amount) || 0;
+                    }
+                }
+            });
+            
+            console.log("Savings data for chart:", savingsData);
+            
+            charts['savings'].data.datasets[0].data = savingsData;
+            charts['savings'].update();
+        } else {
+            console.error("Savings chart not initialized");
+        }
+        
+        loadSavingsSummary();
+    } catch (error) {
+        console.error('Error updating charts:', error);
+        showNotification('error', 'Error updating charts');
+    }
+}
+
+// Utility Functions
+function getLastThirtyDays() {
+    const dates = [];
+    const today = new Date();
+    
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(today.getDate() - i);
+        dates.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    }
+    
+    return dates;
+}
+
+function getDailyLabels() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const monthNames = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+
+    return Array.from({ length: daysInMonth }, (_, i) => {
+        const day = i + 1;
+        return `${day} ${monthNames[month]}`;
+    });
+}
+
+function getChartColor(category) {
+    const colors = {
+        food: '#8b5cf6',
+        transport: '#10b981',
+        entertainment: '#f59e0b',
+        utilities: '#3b82f6',
+        Other: '#ef4444'
+    };
+    return colors[category] || '#8b5cf6';
+}
+
+function getChartBackgroundColor(category) {
+    const colors = {
+        food: 'rgba(139, 92, 246, 0.1)',
+        transport: 'rgba(16, 185, 129, 0.1)',
+        entertainment: 'rgba(245, 158, 11, 0.1)',
+        utilities: 'rgba(59, 130, 246, 0.1)',
+        Other: 'rgba(239, 68, 68, 0.1)'
+    };
+    return colors[category] || 'rgba(139, 92, 246, 0.1)';
+}
+
+// Theme and UI Functions
+function applyTheme(theme) {
+    document.body.className = theme;
+    document.querySelector('.sidebar').className = `sidebar ${theme}`;
+    document.querySelector('.main-content').className = `main-content ${theme}`;
+    const selects = document.querySelectorAll('select');
+    selects.forEach(select => {
+        select.className = theme;
+    });
+    
+    // Preserve existing data when switching themes
+    const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+    const incomes = JSON.parse(localStorage.getItem('incomes')) || [];
+    const savingsHistory = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+    const budgets = JSON.parse(localStorage.getItem('budgets')) || {};
+    
+    // Update charts with preserved data
+    if (typeof updateCharts === 'function') {
+        updateCharts();
+    }
+}
+
+// Notification and Logout Functions
+function showNotification(type, message) {
+            // Create notification container if it doesn't exist
+            const container = document.getElementById('notificationContainer') || 
+                              document.body.appendChild(document.createElement('div'));
+            container.id = 'notificationContainer';
+
+            // Create new notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+
+            // Add to container
+            container.appendChild(notification);
+
+            // Set timeout to remove notification
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                
+                // Remove from DOM after fade out
+                setTimeout(() => {
+                    container.removeChild(notification);
+                }, 500);
+            }, 5000);
+
+            // Browser notification (if permitted)
+            if (Notification && Notification.permission === 'granted') {
+                new Notification(message);
+            } else if (Notification && Notification.permission !== 'denied') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        new Notification(message);
+                    }
+                });
+            }
+        }
+
+function handleLogout(e) {
+    e.preventDefault();
+    localStorage.removeItem('isLoggedIn');
+    window.location.href = 'login.html';
+}
+
+// Show fallback messages for charts
+function showChartFallbacks() {
+    document.getElementById('savingsProgressFallback').style.display = 'block';
+    categories.forEach(category => {
+        const fallbackId = `${category}ChartFallback`;
+        const fallbackElement = document.getElementById(fallbackId);
+        if (fallbackElement) {
+            fallbackElement.style.display = 'block';
+        }
+    });
+}
+
+// Add the chartOptions function that's missing
+function chartOptions(title) {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            },
+            title: {
+                display: true,
+                text: title
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: `Amount (${savedSettings.currency})`
+                },
+                ticks: {
+                    color: savedSettings.theme === 'dark' ? '#fff' : '#000',
+                    callback: function(value) {
+                        return `${savedSettings.currency} ${value}`;
+                    }
+                },
+                grid: { 
+                    color: savedSettings.theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' 
+                }
+            },
+            x: {
+                ticks: { 
+                    color: savedSettings.theme === 'dark' ? '#fff' : '#000' 
+                },
+                grid: { 
+                    color: savedSettings.theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' 
+                }
+            }
+        }
+    };
+}
+
+// Update the updateSavingsProgress function to ensure it works properly
+function updateSavingsProgress() {
+    console.log("Updating savings progress chart");
+    let savingsHistory = JSON.parse(localStorage.getItem('savingsHistory')) || [];
+    console.log("Savings history:", savingsHistory);
+    
+    // Get the current savings goal
+    const savingsGoal = parseFloat(localStorage.getItem('savingsGoal')) || 10000;
+    
+    if (savingsHistory.length === 0) {
+        console.log("No savings history found, creating demo data");
+        const demoSavings = [
+            { date: "2024-09-01", amount: 9000, target: savingsGoal },
+            { date: "2024-10-01", amount: 12000, target: savingsGoal },
+            { date: "2024-11-01", amount: 8000, target: savingsGoal },
+            { date: "2024-12-01", amount: 10000, target: savingsGoal },
+            { date: "2025-01-01", amount: 6000, target: savingsGoal },
+            { date: "2025-02-01", amount: 13000, target: savingsGoal },
+            { date: "2025-03-01", amount: 16000, target: savingsGoal }
+        ];
+        localStorage.setItem('savingsHistory', JSON.stringify(demoSavings));
+        savingsHistory = demoSavings;
+    }
+    
+    // Sort savings history by date
+    savingsHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    const months = savingsHistory.map(s => new Date(s.date).toLocaleString('default', { month: 'long', year: 'numeric' }));
+    const savingsData = savingsHistory.map(s => s.amount);
+    
+    // Use the savings goal for the target line
+    const targetData = Array(months.length).fill(savingsGoal);
+    
+    console.log("Months:", months);
+    console.log("Savings data:", savingsData);
+    console.log("Target data:", targetData);
+
+    // Create savings progress chart
+    const savingsCtx = document.getElementById('savingsChart');
+    if (!savingsCtx) {
+        console.error("Savings chart canvas not found");
+        return;
+    }
+    
+    const ctx = savingsCtx.getContext('2d');
+    if (!ctx) {
+        console.error("Could not get context for savings chart");
+        return;
+    }
+    
+    if (window.savingsChartInstance) {
+        window.savingsChartInstance.destroy();
+    }
+    
+    window.savingsChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Actual Savings',
+                    data: savingsData,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                },
+                {
+                    label: 'Savings Target',
+                    data: targetData,
+                    borderColor: 'rgb(255, 99, 132)',
+                    borderDash: [5, 5],
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                title: {
+                    display: true,
+                    text: 'Savings Progress'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.dataset.label || '';
+                            const value = context.parsed.y;
+                            return `${label}: ${savedSettings.currency}${value.toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: `Amount (${savedSettings.currency})`
+                    },
+                    ticks: {
+                        color: savedSettings.theme === 'dark' ? '#fff' : '#000',
+                        callback: function(value) {
+                            return `${savedSettings.currency} ${value}`;
+                        }
+                    },
+                    grid: { 
+                        color: savedSettings.theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' 
+                    }
+                },
+                x: {
+                    ticks: { 
+                        color: savedSettings.theme === 'dark' ? '#fff' : '#000' 
+                    },
+                    grid: { 
+                        color: savedSettings.theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' 
+                    }
+                }
+            }
+        }
+    });
+    
+    console.log("Savings chart created successfully");
+}
+
+// Initialization
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
+ </script>
+</body>
+</html>
